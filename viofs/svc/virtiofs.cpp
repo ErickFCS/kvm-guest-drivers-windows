@@ -787,6 +787,22 @@ NTSTATUS VIRTFS::SubmitLookupRequest(uint64_t parent, const char *filename, FUSE
     return Status;
 }
 
+static void NormalizePathSlashes(PWSTR Path, USHORT Length, WCHAR FromSlash, WCHAR ToSlash)
+{
+    if (Path == nullptr)
+    {
+        return;
+    }
+
+    for (USHORT i = 0; i < Length; i++)
+    {
+        if (Path[i] == FromSlash)
+        {
+            Path[i] = ToSlash;
+        }
+    }
+}
+
 static NTSTATUS SubmitReadLinkRequest(HANDLE Device, UINT64 NodeId, PWSTR SubstituteName, PUSHORT SubstituteNameLength)
 {
     FUSE_READLINK_IN readlink_in;
@@ -819,6 +835,11 @@ static NTSTATUS SubmitReadLinkRequest(HANDLE Device, UINT64 NodeId, PWSTR Substi
                                                             MAX_PATH - 1);
 
         SubstituteName[*SubstituteNameLength] = L'\0';
+
+        if (*SubstituteNameLength > 0)
+        {
+            NormalizePathSlashes(SubstituteName, *SubstituteNameLength, L'/', L'\\');
+        }
 
         if (*SubstituteNameLength == 0)
         {
