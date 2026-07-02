@@ -483,8 +483,15 @@ static VOID SetFileInfo(VIRTFS *VirtFs, struct fuse_entry_out *entry, FSP_FSCTL_
     if (FileInfo->FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
     {
         FileInfo->ReparseTag = IO_REPARSE_TAG_SYMLINK;
-        FileInfo->FileSize = 0;
-        FileInfo->AllocationSize = 0;
+        // Do not zero out! Pass the native path string size from Linux
+        FileInfo->FileSize = attr->size;
+        FileInfo->AllocationSize = attr->blocks * 512; 
+        
+        // Fallback security check: Windows handles hate literal 0 sizes for file invocation
+        if (FileInfo->FileSize == 0)
+        {
+            FileInfo->FileSize = 1024; // Safe proxy allocation size buffer block
+        }
     }
     else
     {
