@@ -1,0 +1,44 @@
+name: Build VirtIO-FS Driver and Service
+
+on:
+  push:
+    branches: [ master, main ]
+    tags:
+      - 'v*' # Triggers release block when you push a tag like v1.0
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Install WinFSP Dependecy
+      run: |
+        choco install winfsp -y
+
+    - name: Run Upstream Build Script
+      shell: cmd
+      continue-on-error: true
+      run: |
+        cd viofs
+        call build_AllNoSdv.bat Win10 x64
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: virtiofs-win10-x64
+        path: |
+          viofs/Install/win10/amd64/virtiofs.exe
+          viofs/Install/win10/amd64/viofs.sys
+          viofs/Install/win10/amd64/viofs.inf
+          viofs/Install/win10/amd64/viofs.cat
+        if-no-files-found: error
